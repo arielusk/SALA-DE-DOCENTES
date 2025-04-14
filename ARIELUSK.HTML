@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Control de Llaves</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .key-list {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .key-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .status-available { color: #2ecc71; }
+        .status-in-use { color: #e74c3c; }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input, select {
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        button {
+            padding: 10px 15px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-success {
+            background-color: #27ae60;
+        }
+
+        .btn-success:hover {
+            background-color: #219653;
+        }
+
+        .btn-warning {
+            background-color: #f39c12;
+        }
+
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        .history-log {
+            margin-top: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-controls {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .user-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .additional-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .user-info {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .prefix-input {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .prefix-input span {
+            padding: 8px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .prefix-input input {
+            flex: 1;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sistema de Control de Llaves</h1>
+            <p>Infocal Santa Cruz - Control de acceso a aulas</p>
+        </div>
+
+        <div class="control-panel">
+            <div class="key-list" id="keyList">
+                <!-- Lista de llaves se actualizará aquí -->
+            </div>
+
+            <div class="controls">
+                <h3>Gestión de Llaves</h3>
+                <select id="keySelect">
+                    <option value="">Seleccionar llave</option>
+                </select>
+                
+                <div class="user-controls">
+                    <div>
+                        <label for="userSelect">Usuario:</label>
+                        <select id="userSelect" onchange="onUserSelectChange()">
+                            <option value="">Seleccionar usuario</option>
+                        </select>
+                        <div class="user-info" id="userInfo"></div>
+                    </div>
+                    <div class="user-actions">
+                        <button class="btn-warning" onclick="showAddUserModal()">+ Nuevo</button>
+                        <button class="btn-danger" onclick="deleteSelectedUser()">- Eliminar</button>
+                    </div>
+                </div>
+                
+                <input type="text" id="userId" placeholder="Número de Oferta">
+                
+                <div class="action-buttons">
+                    <button class="btn-primary" onclick="checkOutKey()">Retirar Llave</button>
+                    <button class="btn-primary" onclick="checkInKey()">Devolver Llave</button>
+                </div>
+                
+                <div class="additional-actions">
+                    <button class="btn-warning" onclick="showAddKeyModal()">Agregar Llave</button>
+                    <button class="btn-success" onclick="exportToExcel()">Exportar Excel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="history-log">
+            <h3>Historial de Movimientos</h3>
+            <div id="logEntries"></div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar nuevo usuario -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <h3>Agregar Nuevo Usuario</h3>
+            <div style="margin-bottom: 15px;">
+                <label for="newUserName">Nombre completo:</label>
+                <input type="text" id="newUserName" style="width: 100%;">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="newUserId">Número de Codigo:</label>
+                <input type="text" id="newUserId" style="width: 100%;">
+            </div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="addNewUser()">Guardar</button>
+                <button onclick="hideAddUserModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para agregar nueva llave -->
+    <div id="keyModal" class="modal">
+        <div class="modal-content">
+            <h3>Agregar Nueva Llave</h3>
+            <div style="margin-bottom: 15px;">
+                <label>Aula:</label>
+                <div class="prefix-input">
+                    <span>AULA -</span>
+                    <input type="text" id="newKeyId">
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Ubicación:</label>
+                <div class="prefix-input">
+                    <span>BLOQUE -</span>
+                    <input type="text" id="newKeyLocation">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-primary" onclick="addNewKey()">Guardar</button>
+                <button onclick="hideAddKeyModal()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script>
+        // Datos iniciales
+        let keys = JSON.parse(localStorage.getItem('keys')) || [];
+        let log = JSON.parse(localStorage.getItem('keyLog')) || [];
+        let users = JSON.parse(localStorage.getItem('users')) || [
+            { name: 'ARIEL', id: '001', lastUsed: null },
+            { name: 'JUAN', id: '002', lastUsed: null },
+            { name: 'MARIA', id: '003', lastUsed: null },
+            { name: 'PEDRO', id: '004', lastUsed: null }
+        ];
+
+        // Inicializar la aplicación
+        function initializeData() {
+            if(keys.length === 0) {
+                keys = [
+                    { id: 'AULA-D2', location: 'BLOQUE D', status: 'available', currentUser: null },
+                    { id: 'AULA-B2', location: 'BLOQUE B', status: 'available', currentUser: null }
+                ];
+                saveData();
+            }
+            updateKeyList();
+            updateUserSelect();
+            updateLog();
+        }
+
+        // Actualizar lista de llaves
+        function updateKeyList() {
+            const container = document.getElementById('keyList');
+            const select = document.getElementById('keySelect');
+            
+            container.innerHTML = '';
+            select.innerHTML = '<option value="">Seleccionar llave</option>';
+            
+            keys.forEach(key => {
+                // Actualizar lista visual
+                const keyElement = document.createElement('div');
+                keyElement.className = 'key-item';
+                
+                let userInfo = '';
+                if (key.status === 'in-use' && key.currentUser) {
+                    userInfo = `<br><small>Usuario: ${key.currentUser.name} (${key.currentUser.id})</small>`;
+                }
+                
+                keyElement.innerHTML = `
+                    <div>
+                        <strong>${key.id}</strong><br>
+                        <small>${key.location}</small>
+                        ${userInfo}
+                    </div>
+                    <span class="status-${key.status === 'available' ? 'available' : 'in-use'}">
+                        ${key.status === 'available' ? 'Disponible' : 'En uso'}
+                    </span>
+                `;
+                container.appendChild(keyElement);
+
+                // Actualizar selector
+                const option = document.createElement('option');
+                option.value = key.id;
+                option.textContent = key.id;
+                select.appendChild(option);
+            });
+        }
+
+        // Actualizar lista de usuarios
+        function updateUserSelect() {
+            const select = document.getElementById('userSelect');
+            select.innerHTML = '<option value="">Seleccionar usuario</option>';
+            
+            // Ordenar usuarios por último uso (los más recientes primero)
+            const sortedUsers = [...users].sort((a, b) => {
+                if (!a.lastUsed && !b.lastUsed) return 0;
+                if (!a.lastUsed) return 1;
+                if (!b.lastUsed) return -1;
+                return new Date(b.lastUsed) - new Date(a.lastUsed);
+            });
+            
+            sortedUsers.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.name;
+                option.textContent = user.name;
+                option.setAttribute('data-user-id', user.id);
+                select.appendChild(option);
+            });
+        }
+
+        // Manejar cambio en selección de usuario
+        function onUserSelectChange() {
+            const select = document.getElementById('userSelect');
+            const selectedOption = select.options[select.selectedIndex];
+            const userId = selectedOption.getAttribute('data-user-id');
+            const userInfo = document.getElementById('userInfo');
+            
+            if (userId) {
+                document.getElementById('userId').value = userId;
+                userInfo.textContent = `Codigo de Docente: ${userId}`;
+            } else {
+                document.getElementById('userId').value = '';
+                userInfo.textContent = '';
+            }
+        }
+
+        // Mostrar modal para nuevo usuario
+        function showAddUserModal() {
+            document.getElementById('userModal').style.display = 'flex';
+            document.getElementById('newUserName').focus();
+        }
+
+        // Ocultar modal de usuario
+        function hideAddUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserId').value = '';
+        }
+
+        // Mostrar modal para nueva llave
+        function showAddKeyModal() {
+            document.getElementById('keyModal').style.display = 'flex';
+            document.getElementById('newKeyId').focus();
+        }
+
+        // Ocultar modal de llave
+        function hideAddKeyModal() {
+            document.getElementById('keyModal').style.display = 'none';
+            document.getElementById('newKeyId').value = '';
+            document.getElementById('newKeyLocation').value = '';
+        }
+
+        // Eliminar usuario seleccionado
+        function deleteSelectedUser() {
+            const select = document.getElementById('userSelect');
+            const selectedUser = select.options[select.selectedIndex].value;
+            
+            if (!selectedUser) {
+                alert('Por favor seleccione un usuario para eliminar');
+                return;
+            }
+            
+            if (confirm(`¿Está seguro que desea eliminar al usuario ${selectedUser}?`)) {
+                users = users.filter(user => user.name !== selectedUser);
+                saveData();
+                updateUserSelect();
+                clearForm();
+                alert('Usuario eliminado correctamente');
+            }
+        }
+
+        // Agregar nuevo usuario
+        function addNewUser() {
+            const name = document.getElementById('newUserName').value.trim();
+            const id = document.getElementById('newUserId').value.trim();
+            
+            if (!name || !id) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+            
+            // Verificar si el usuario ya existe
+            if (users.some(u => u.name.toUpperCase() === name.toUpperCase())) {
+                alert('Ya existe un usuario con ese nombre');
+                return;
+            }
+            
+            if (users.some(u => u.id === id)) {
+                alert('Ya existe un usuario con ese número de oferta');
+                return;
+            }
+            
+            users.push({ name: name.toUpperCase(), id, lastUsed: null });
+            saveData();
+            updateUserSelect();
+            
+            // Seleccionar el nuevo usuario
+            const select = document.getElementById('userSelect');
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value.toUpperCase() === name.toUpperCase()) {
+                    select.selectedIndex = i;
+                    onUserSelectChange();
+                    break;
+                }
+            }
+            
+            hideAddUserModal();
+            alert('Usuario agregado correctamente');
+        }
+
+        // Retirar llave
+        function checkOutKey() {
+            const keyId = document.getElementById('keySelect').value;
+            const userName = document.getElementById('userSelect').value;
+            const userId = document.getElementById('userId').value;
+
+            if(!keyId) {
+                alert('Por favor seleccione una llave');
+                return;
+            }
+
+            if(!userName) {
+                alert('Por favor seleccione un usuario');
+                return;
+            }
+
+            if(!userId) {
+                alert('Por favor ingrese el número de oferta');
+                return;
+            }
+
+            const key = keys.find(k => k.id === keyId);
+            if(key.status !== 'available') {
+                alert('Esta llave no está disponible');
+                return;
+            }
+
+            key.status = 'in-use';
+            key.currentUser = { name: userName, id: userId };
+            
+            // Actualizar último uso del usuario
+            const user = users.find(u => u.name === userName && u.id === userId);
+            if (user) {
+                user.lastUsed = new Date().toISOString();
+            }
+            
+            // Registrar movimiento
+            log.unshift({
+                keyId: keyId,
+                action: 'check-out',
+                user: { name: userName, id: userId },
+                timestamp: new Date().toISOString()
+            });
+
+            saveData();
+            updateKeyList();
+            updateUserSelect();
+            updateLog();
+            clearForm();
+        }
+
+        // Devolver llave
+        function checkInKey() {
+            const keyId = document.getElementById('keySelect').value;
+            const key = keys.find(k => k.id === keyId);
+            
+            if(!keyId) {
+                alert('Por favor seleccione una llave');
+                return;
+            }
+
+            if(key.status === 'available') {
+                alert('Esta llave ya está disponible');
+                return;
+            }
+
+            key.status = 'available';
+            
+            // Registrar movimiento
+            log.unshift({
+                keyId: keyId,
+                action: 'check-in',
+                user: key.currentUser,
+                timestamp: new Date().toISOString()
+            });
+            
+            key.currentUser = null;
+            saveData();
+            updateKeyList();
+            updateLog();
+            clearForm();
+        }
+
+        // Agregar nueva llave
+        function addNewKey() {
+            const keyId = "AULA-" + document.getElementById('newKeyId').value.trim().toUpperCase();
+            const location = "BLOQUE-" + document.getElementById('newKeyLocation').value.trim().toUpperCase();
+            
+            if(!keyId || keyId === "AULA-" || !location || location === "BLOQUE-") {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+            
+            // Verificar si la llave ya existe
+            if (keys.some(k => k.id === keyId)) {
+                alert('Ya existe una llave con este identificador');
+                return;
+            }
+            
+            keys.push({
+                id: keyId,
+                location: location,
+                status: 'available',
+                currentUser: null
+            });
+            
+            saveData();
+            updateKeyList();
+            hideAddKeyModal();
+            alert(`Llave ${keyId} agregada correctamente`);
+        }
+
+        // Actualizar historial
+        function updateLog() {
+            const container = document.getElementById('logEntries');
+            container.innerHTML = log.map(entry => `
+                <div class="log-entry">
+                    [${new Date(entry.timestamp).toLocaleString()}]<br>
+                    <strong>${entry.keyId}</strong> - 
+                    ${entry.action === 'check-out' ? 'Retirada por' : 'Devuelta por'} 
+                    ${entry.user.name} (${entry.user.id})
+                </div>
+            `).join('');
+        }
+
+        // Limpiar formulario
+        function clearForm() {
+            document.getElementById('userSelect').value = '';
+            document.getElementById('userId').value = '';
+            document.getElementById('userInfo').textContent = '';
+        }
+
+        // Guardar datos en localStorage
+        function saveData() {
+            localStorage.setItem('keys', JSON.stringify(keys));
+            localStorage.setItem('keyLog', JSON.stringify(log));
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        // Exportar a Excel
+        function exportToExcel() {
+            // Crear hoja de llaves
+            const keysData = keys.map(key => ({
+                'Llave': key.id,
+                'Ubicación': key.location,
+                'Estado': key.status === 'available' ? 'Disponible' : 'En uso',
+                'Usuario Actual': key.currentUser ? `${key.currentUser.name} (${key.currentUser.id})` : '',
+                'Fecha Último Movimiento': getLastMovementDate(key.id)
+            }));
+            
+            // Crear hoja de historial
+            const logData = log.map(entry => ({
+                'Fecha': new Date(entry.timestamp).toLocaleString(),
+                'Llave': entry.keyId,
+                'Acción': entry.action === 'check-out' ? 'Retirada' : 'Devolución',
+                'Usuario': `${entry.user.name} (${entry.user.id})`
+            }));
+            
+            // Crear hoja de usuarios
+            const usersData = users.map(user => ({
+                'Nombre': user.name,
+                'Número de Oferta': user.id,
+                'Último Uso': user.lastUsed ? new Date(user.lastUsed).toLocaleString() : 'Nunca'
+            }));
+            
+            // Crear libro de Excel
+            const wb = XLSX.utils.book_new();
+            const keysWS = XLSX.utils.json_to_sheet(keysData);
+            const logWS = XLSX.utils.json_to_sheet(logData);
+            const usersWS = XLSX.utils.json_to_sheet(usersData);
+            
+            XLSX.utils.book_append_sheet(wb, keysWS, "Llaves");
+            XLSX.utils.book_append_sheet(wb, logWS, "Historial");
+            XLSX.utils.book_append_sheet(wb, usersWS, "Usuarios");
+            
+            // Generar archivo y descargar
+            const date = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `Control_Llaves_${date}.xlsx`);
+        }
+
+        // Obtener fecha del último movimiento de una llave
+        function getLastMovementDate(keyId) {
+            const entry = log.find(entry => entry.keyId === keyId);
+            return entry ? new Date(entry.timestamp).toLocaleString() : 'Sin movimientos';
+        }
+
+        // Inicializar la aplicación
+        initializeData();
+    </script>
+</body>
+</html>
